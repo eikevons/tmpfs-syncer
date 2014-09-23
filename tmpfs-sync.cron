@@ -1,0 +1,7 @@
+# crontab entry to keep tmpfs-sync in sync with disk storage
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user command
+
+30 */2  * * *   root    test -x /etc/init.d/tmpfs-sync.sh && /usr/sbin/invoke-rc.d tmpfs-sync.sh reload >/dev/null

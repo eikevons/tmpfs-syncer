@@ -14,13 +14,13 @@
 . /lib/lsb/init-functions
 
 NAME=tmpfs-sync
-TMPFSCONFIG=${TMPFSCONFIG:-/etc/tmpfs-sync.dirs}
+TMPFSCONFIG=${TMPFSCONFIG:-/etc/tmpfs-sync.conf}
 TMPFSSYNC=/usr/local/bin/tmpfs-sync
 LOCK=/run/lock/tmpfs-sync.lock
 
 [ -x $TMPFSSYNC ] || { echo "$TMPFSSYNC not found"; exit 1 ;}
 
-[ -e $TMPFSCONFIG ] || exit 0
+[ -e $TMPFSCONFIG ] || { echo "$TMPFSCONFIG not found"; exit 0 ;}
 
 # Set log level for tmpfs-sync
 LOGLEVEL=4
