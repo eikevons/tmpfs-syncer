@@ -1,0 +1,209 @@
+#!/bin/zsh
+
+PROG=$0
+LOGLEVEL=1
+
+usage () {
+  echo "$PROG synchronize directory with tmpfs copy"
+  echo
+  echo "usage: $PROG COMMAND DIR"
+  echo
+  echo "possible COMMANDs:"
+  echo "  init        Initialize tmpfs copy"
+  echo "  sync        Synchronize tmpfs content to on-disk copy"
+  echo "  release     Release directory sync"
+  echo "  status      Print status of DIR"
+  echo "  recover     Fix DIR after a crash"
+}
+
+log () {
+  local lvl msg
+  lvl=$1
+  msg=$2
+  if (( $lvl >= $LOGLEVEL )); then
+    print $msg
+  fi
+}
+
+# Initialize storing $DIR on $TMPFSDIR
+init () {
+  log 3 "Initializing $DIR"
+
+  [[ -e $tmptarget ]] && { log 4 "Error: $tmptarget exists"; exit 1}
+  [[ -e $tmplink ]] && { log 4 "Error: $tmplink exists"; exit 1}
+  [[ -e $diskdir ]] && { log 4 "Error: $diskdir exists"; exit 1}
+
+  log 1 "Creating tmptarget"
+  log 1 "  mkdir -p $tmptarget"
+  mkdir -p $tmptarget
+  log 1 "  chmod --reference=$DIR $tmptarget"
+  chmod --reference=$DIR $tmptarget
+
+  log 1 "Moving src to hidden dir"
+  log 1 "  mv $DIR $diskdir"
+  mv $DIR $diskdir
+
+  log 1 "Linking $tmplink to hidden dir"
+  log 1 "  ln -s $diskdir $tmplink"
+  ln -s $diskdir $tmplink
+
+  log 1 "rsync'ing files"
+  log 1 "  rsync -aogX --inplace $diskdir/ $tmptarget"
+  rsync -aX --inplace $diskdir/ $tmptarget
+
+  log 1 "linking tmp container to original dir"
+  log 1 "  ln -s $tmptarget $DIR"
+  ln -s $tmptarget $DIR
+}
+
+# Synchronize tmpfs content with permanent $diskdir
+sync () {
+  log 3 "Synchronizing $DIR"
+  log 1 "  rsync -aX --inplace $tmptarget/ $diskdir"
+  rsync -aX --inplace $tmptarget/ $diskdir
+}
+
+# Release $DIR from tmpfs storage.
+# Note: this does not sync
+release () {
+  log 3 "Releasing $DIR"
+
+  log 1 "Deleting link to tmpfs storage"
+  log 1 "  rm $DIR"
+  rm $DIR
+
+  log 1 "Moving diskdir to original place"
+  log 1 "  mv $diskdir $DIR"
+  mv $diskdir $DIR
+
+  log 1 "Cleaning up tempfs storage"
+  log 1 "  rm $tmplink"
+  rm $tmplink
+  log 1 "  rm -rf $tmptarget"
+  rm -rf $tmptarget
+}
+
+# Check that no one is using files under $DIR or exit.
+is_safe () {
+  log 1 "Checking for open files"
+  open_files=${#${(f):-"$(lsof +D $DIR)"}}
+  log 1 "  $open_files"
+  if (( open_files > 1 )); then
+    log 5 "Error: file in $DIR is opened"
+    exit 5
+  fi
+}
+
+# Check that all necessary external programs are installed or exit.
+check_dependencies () {
+  whence rsync &> /dev/null || {log 5 "rsync program is missing"; exit 6}
+  whence lsof &> /dev/null || {log 5 "lsof program is missing"; exit 6}
+}
+
+# Check the status of $DIR.
+# Returns:
+#   0  - $DIR is not initialized
+#   1  - $DIR is fully initialized
+#   2  - $DIR is in an unknown state 
+dir_status () {
+  if [[ -d $DIR && ! ( -e $diskdir || -e $tmptarget || -e $tmplink ) ]]; then
+    return 0
+  elif [[ -h $DIR && -d $diskdir && -d $tmptarget && -h $tmplink ]]; then
+    return 1
+  else
+    return 2
+  fi
+}
+
+
+# Prepare link and directory names.
+prep_names () {
+  local dir base name
+  dir=${1:a}
+
+  base=${dir:h}
+  name=${dir:t}
+  diskdir=$base/.${name}.tmpfssynced
+  tmptarget=$TMPFSDIR/tmp${DIR//\//.}
+  tmplink=$TMPFSDIR/orig${DIR//\//.}
+
+  # normalize paths
+  diskdir=$diskdir:a
+  tmptarget=$tmptarget:a
+  tmplink=$tmplink:a
+}
+
+recover () {
+  if [[ -d $tmptarget || -h $tmplink ]]; then
+    print "$tmptarget or $tmplink exist"
+    print
+    print "Cannot recover!"
+    exit 1
+  elif [[ ! -d $diskdir ]]; then
+    print "$diskdir does not exist"
+    print
+    print "Cannot recover!"
+    exit 1
+  elif [[ ! -h $DIR ]]; then
+    print "$DIR is not a symbolic link"
+    print
+    print "Cannot recover!"
+    exit 1
+  fi
+
+  rm $DIR
+  mv $diskdir $DIR
+}
+
+
+## Main
+(( $# < 2 )) && {usage; exit 3}
+
+CMD=$1
+DIR=$2
+
+TMPFSDIR=/tmp/tmpfssync.d/
+
+check_dependencies
+prep_names $DIR
+dir_status
+dstat=$?
+    
+case $CMD in
+  init)
+    [[ $dstat != 0 ]] && { echo "$DIR is not a plain directory"; exit 7 }
+    is_safe
+    init;;
+
+  sync)
+    [[ $dstat != 1 ]] && { echo "$DIR is not properly initialized"; exit 7 }
+    sync;;
+
+  release)
+    [[ $dstat != 1 ]] && { echo "$DIR is not properly initialized"; exit 7 }
+    is_safe
+    release;;
+
+  status)
+    if [[ $dstat == 0 ]]; then
+      echo "$DIR is not initialized"
+      exit $dstat
+    elif [[ $dstat == 1 ]]; then
+      echo "$DIR is properly linked to TMPFS"
+    else
+      ls -dl $DIR $diskdir $tmptarget $tmplink
+      echo
+      echo "status of $DIR is unknown!"
+    fi
+    ;;
+
+  recover)
+    recover
+    ;;
+  *)
+    usage
+    echo
+    echo "Unkown command: $CMD"
+    exit 1
+    ;;
+esac
