@@ -1,0 +1,77 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          tmpfs-sync
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fsview 
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Starts tmpfs-sync service.
+# Description:       Starts tmpfs-sync service.
+### END INIT INFO
+
+. /lib/init/vars.sh
+. /lib/lsb/init-functions
+
+NAME=tmpfs-sync
+TMPFSCONFIG=${TMPFSCONFIG:-/etc/tmpfs-sync.dirs}
+TMPFSSYNC=/usr/local/bin/tmpfs-sync
+LOCK=/run/lock/tmpfs-sync.lock
+
+[[ -x $TMPFSSYNC ]] || { echo "$TMPFSSYNC not found"; exit 1 }
+
+[[ -e $TMPFSCONFIG ]] || exit 0
+
+do_init () {
+  [[ -e $LOCK ]] && { echo "$NAME already initialized"; exit 1 }
+  while read d; do
+    $TMPFSSYNC init $d || echo "failed to init sync for $d"
+  done < $TMPFSCONFIG
+  touch $LOCK
+}
+
+do_release () {
+  [[ -e $LOCK ]] || { echo "$NAME not initialized"; exit 1 }
+  while read d; do
+    $TMPFSSYNC release $d || echo "failed to release $d"
+  done < $TMPFSCONFIG
+  rm 
+}
+
+do_sync () {
+  [[ -e $LOCK ]] || { echo "$NAME not initialized"; exit 1 }
+  while read d; do
+    $TMPFSSYNC sync $d || echo "failed to sync for $d"
+  done < $TMPFSCONFIG
+}
+
+case "$1" in
+  start)
+    log_action_begin_msg "Starting $NAME"
+    do_init
+    log_action_end_msg 0
+    ;;
+
+  stop)
+    log_action_begin_msg "Stopping $NAME"
+    do_release
+    log_action_end_msg 0
+    ;;
+
+  reload|force-reload)
+    log_action_begin_msg "Reloading $NAME"
+    do_sync
+    log_action_end_msg 0
+    ;;
+
+  restart)
+    $0 stop
+    $0 start
+    ;;
+
+  *)
+    log_action_msg "Usage: $0 {start|stop|restart|reload|force-reload}" >&2
+    ;;
+esac
+
+exit 0
