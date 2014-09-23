@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 PROG=$0
-LOGLEVEL=1
+LOGLEVEL=${LOGLEVEL:-3}
 
 usage () {
   echo "$PROG synchronize directory with tmpfs copy"
