@@ -38,6 +38,8 @@ init () {
   mkdir -p $tmptarget
   log 1 "  chmod --reference=$DIR $tmptarget"
   chmod --reference=$DIR $tmptarget
+  log 1 "  chown --reference=$DIR $tmptarget"
+  chown --reference=$DIR $tmptarget
 
   log 1 "Moving src to hidden dir"
   log 1 "  mv $DIR $diskdir"
@@ -46,6 +48,8 @@ init () {
   log 1 "Linking $tmplink to hidden dir"
   log 1 "  ln -s $diskdir $tmplink"
   ln -s $diskdir $tmplink
+  log 1 "  chown --no-dereference --reference=$diskdir $tmplink"
+  chown --no-dereference --reference=$diskdir $tmplink
 
   log 1 "rsync'ing files"
   log 1 "  rsync -aogX --inplace $diskdir/ $tmptarget"
@@ -54,6 +58,8 @@ init () {
   log 1 "linking tmp container to original dir"
   log 1 "  ln -s $tmptarget $DIR"
   ln -s $tmptarget $DIR
+  log 1 "  chown --no-dereference --reference=$diskdir $DIR"
+  chown --no-dereference --reference=$diskdir $DIR
 }
 
 # Synchronize tmpfs content with permanent $diskdir
