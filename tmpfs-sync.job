@@ -18,12 +18,15 @@ TMPFSCONFIG=${TMPFSCONFIG:-/etc/tmpfs-sync.dirs}
 TMPFSSYNC=/usr/local/bin/tmpfs-sync
 LOCK=/run/lock/tmpfs-sync.lock
 
-[[ -x $TMPFSSYNC ]] || { echo "$TMPFSSYNC not found"; exit 1 }
+[ -x $TMPFSSYNC ] || { echo "$TMPFSSYNC not found"; exit 1 ;}
 
-[[ -e $TMPFSCONFIG ]] || exit 0
+[ -e $TMPFSCONFIG ] || exit 0
+
+# Set log level for tmpfs-sync
+LOGLEVEL=4
 
 do_init () {
-  [[ -e $LOCK ]] && { echo "$NAME already initialized"; exit 1 }
+  [ -e $LOCK ] && { echo "$NAME already initialized"; exit 1; }
   while read d; do
     $TMPFSSYNC init $d || echo "failed to init sync for $d"
   done < $TMPFSCONFIG
@@ -31,15 +34,15 @@ do_init () {
 }
 
 do_release () {
-  [[ -e $LOCK ]] || { echo "$NAME not initialized"; exit 1 }
+  [ -e $LOCK ] || { echo "$NAME not initialized"; exit 1; }
   while read d; do
     $TMPFSSYNC release $d || echo "failed to release $d"
   done < $TMPFSCONFIG
-  rm 
+  rm $LOCK
 }
 
 do_sync () {
-  [[ -e $LOCK ]] || { echo "$NAME not initialized"; exit 1 }
+  [ -e $LOCK ] || { echo "$NAME not initialized"; exit 1; }
   while read d; do
     $TMPFSSYNC sync $d || echo "failed to sync for $d"
   done < $TMPFSCONFIG
@@ -59,7 +62,7 @@ case "$1" in
     ;;
 
   reload|force-reload)
-    log_action_begin_msg "Reloading $NAME"
+    log_action_begin_msg "Synchronizing $NAME"
     do_sync
     log_action_end_msg 0
     ;;
@@ -67,6 +70,10 @@ case "$1" in
   restart)
     $0 stop
     $0 start
+    ;;
+
+  status)
+    [ -e $LOCK ] && { log_action_msg "$NAME is active"; exit 0; } || { log_action_msg "$NAME is inactive"; exit 1; }
     ;;
 
   *)
