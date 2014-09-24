@@ -168,7 +168,7 @@ recover () {
 CMD=$1
 DIR=$2
 
-TMPFSDIR=/tmp/tmpfssync.d/
+TMPFSDIR=${TMPFSDIR:-/dev/shm/tmpfssync.d/}
 
 check_dependencies
 prep_names $DIR
