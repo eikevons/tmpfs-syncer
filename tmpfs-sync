@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 PROG=$0
-LOGLEVEL=${LOGLEVEL:-3}
+TMPFSSYNC_LOGLEVEL=${TMPFSSYNC_LOGLEVEL:-3}
 
 usage () {
   echo "$PROG synchronize directory with tmpfs copy"
@@ -20,7 +20,7 @@ log () {
   local lvl msg
   lvl=$1
   msg=$2
-  if (( $lvl >= $LOGLEVEL )); then
+  if (( $lvl >= $TMPFSSYNC_LOGLEVEL )); then
     print $msg
   fi
 }

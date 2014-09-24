@@ -1,0 +1,17 @@
+[Unit]
+Description=tmpfs-sync
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=TMPFSDIR=/dev/shm/tmpfs-sync.system.d/
+Environment=TMPFS_CONFIG=/etc/tmpfs-sync.conf
+Environment=TMPFS_SCRIPT=/usr/local/bin/tmpfs-sync
+Environment=TMPFSSYNC_LOGLEVEL=4
+ExecStart=while read d; do $TMPFS_SCRIPT init $d || echo "failed to init sync for $d"; done < $TMPFS_CONFIG
+ExecStop=while read d; do $TMPFS_SCRIPT release $d || echo "failed to release sync for $d"; done < $TMPFS_CONFIG
+ExecReload=while read d; do $TMPFS_SCRIPT sync $d || echo "failed to sync for $d"; done < $TMPFS_CONFIG
+
+[Install]
+WantedBy=multi-user.target

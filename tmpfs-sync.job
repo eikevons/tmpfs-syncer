@@ -23,7 +23,7 @@ LOCK=/run/lock/tmpfs-sync.lock
 [ -e $TMPFSCONFIG ] || { echo "$TMPFSCONFIG not found"; exit 0 ;}
 
 # Set log level for tmpfs-sync
-LOGLEVEL=4
+TMPFSSYNC_LOGLEVEL=4
 
 do_init () {
   [ -e $LOCK ] && { echo "$NAME already initialized"; exit 1; }
