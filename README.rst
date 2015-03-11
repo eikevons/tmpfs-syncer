@@ -35,8 +35,8 @@ Zsh_, lsof_, rsync_
 At the moment, *tmpfs-sync* is implemented as a  Zsh_ script which calls
 lsof_ to check if releasing is safe and rsync_ to synchronize.
 
-For integration with systemd_, the script is
-accompanied by a number of `.service` and `.timer` files for `systemd`.
+For integration with systemd_, the script is accompanied by a number of
+`.service` and `.timer` files.
 
 Usage
 -----
@@ -62,11 +62,20 @@ TMPFSSYNC_LOGLEVEL
     The verbosity of the script (1-5). Lower means more verbose. Defaults to
     3.
 
-The `systemd` service defined in `tmpfs-sync.service` requires a config
+The systemd_ service defined in `tmpfs-sync.service` requires a config
 file at `/etc/tmpfs-sync.conf` which must contain one directory per line
 (no comments or such allowed). A `systemd` timer to regularly (every 2
 hours) synchronize is defined in `tmpfs-sync.sync.timer` and
 `tmpfs-sync.sync.service`.
+
+Installation
+------------
+
+Copy `tmpfs-sync` somewhere in your `$PATH`. For integration with
+systemd_, it must be installed in `/usr/local/bin/` and the `*.service`
+and `*.timer` files must be copied to `/etc/systemd/system/` (at least
+with Debian) and enable the services and timer via `systemd enable
+tmpfs-sync.service tmpfs-sync.sync.service tmpfs-sync.sync.timer`.
 
 .. _Zsh: http://www.zsh.org
 .. _lsof: https://people.freebsd.org/~abe/
