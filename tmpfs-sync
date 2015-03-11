@@ -11,7 +11,8 @@ usage () {
   echo "possible COMMANDs:"
   echo "  init        Initialize tmpfs copy"
   echo "  sync        Synchronize tmpfs content to on-disk copy"
-  echo "  release     Release directory sync"
+  echo "  release     Release directory sync (does not sync!)"
+  echo "  sync-release   Synchronize and release directory sync"
   echo "  status      Print status of DIR"
   echo "  recover     Fix DIR after a crash"
 }
@@ -179,16 +180,27 @@ case $CMD in
   init)
     [[ $dstat != 0 ]] && { echo "$DIR is not a plain directory"; exit 7 }
     is_safe
-    init;;
+    init
+    ;;
 
   sync)
     [[ $dstat != 1 ]] && { echo "$DIR is not properly initialized"; exit 7 }
-    sync;;
+    sync
+    ;;
 
   release)
     [[ $dstat != 1 ]] && { echo "$DIR is not properly initialized"; exit 7 }
     is_safe
-    release;;
+    release
+    ;;
+
+  sync-release)
+    [[ $dstat != 1 ]] && { echo "$DIR is not properly initialized"; exit 7 }
+    is_safe
+    sync
+    release
+    ;;
+
 
   status)
     if [[ $dstat == 0 ]]; then
