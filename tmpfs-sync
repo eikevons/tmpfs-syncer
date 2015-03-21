@@ -88,8 +88,8 @@ init () {
 # Synchronize tmpfs content with permanent $diskdir
 sync () {
   log 3 "Synchronizing $DIR"
-  log 1 "  rsync -aX --inplace $tmptarget/ $diskdir"
-  rsync -aX --inplace $tmptarget/ $diskdir
+  log 1 "  rsync -aX --inplace --delete $tmptarget/ $diskdir"
+  rsync -aX --inplace --delete $tmptarget/ $diskdir
 }
 
 # Release $DIR from tmpfs storage.
@@ -115,7 +115,7 @@ release () {
 # Check that no one is using files under $DIR or exit.
 is_safe () {
   log 1 "Checking for open files"
-  open_files=${#${(f):-"$(lsof +D $DIR)"}}
+  open_files=${#${(f):-"$(lsof +D $DIR 2>/dev/null)"}}
   log 1 "  $open_files"
   if (( open_files > 1 )); then
     log 5 "Error: file in $DIR is opened"
