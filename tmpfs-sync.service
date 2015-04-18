@@ -11,7 +11,7 @@ Environment=TMPFS_CONFIG=/etc/tmpfs-sync.conf
 Environment=TMPFS_SCRIPT=/usr/local/bin/tmpfs-sync
 Environment=TMPFSSYNC_LOGLEVEL=4
 ExecStart=/bin/sh -c "while read d; do $TMPFS_SCRIPT init $d || echo \"failed to init sync for $d\"; done < $TMPFS_CONFIG"
-ExecStop=/bin/sh -c "while read d; do $TMPFS_SCRIPT release $d || echo \"failed to release sync for $d\"; done < $TMPFS_CONFIG"
+ExecStop=/bin/sh -c "while read d; do $TMPFS_SCRIPT sync-release $d || echo \"failed to release sync for $d\"; done < $TMPFS_CONFIG"
 
 [Install]
 WantedBy=multi-user.target
